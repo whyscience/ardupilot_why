@@ -105,7 +105,7 @@ bool Copter::poshold_init(bool ignore_checks)
         // only init here as we can switch to PosHold in flight with a velocity <> 0 that will be used as _last_vel in PosControl and never updated again as we inhibit Reset_I
         wp_nav.init_loiter_target();
     }else{
-        // if not landed start in pilot override to avoid hard twitch
+        // if not landed start in pilot override to avoid hard twitch//使用用戶輸入以避免抽动
         poshold.roll_mode = POSHOLD_PILOT_OVERRIDE;
         poshold.pitch_mode = POSHOLD_PILOT_OVERRIDE;
     }
@@ -113,7 +113,7 @@ bool Copter::poshold_init(bool ignore_checks)
     // loiter's I terms should be reset the first time only
     poshold.loiter_reset_I = true;
 
-    // initialise wind_comp each time PosHold is switched on
+    // initialise wind_comp each time PosHold is switched on //关闭风的补偿
     poshold.wind_comp_ef.zero();
     poshold.wind_comp_roll = 0;
     poshold.wind_comp_pitch = 0;
@@ -179,7 +179,11 @@ void Copter::poshold_run()
 
     // relax loiter target if we might be landed
     if (ap.land_complete_maybe) {
-        wp_nav.loiter_soften_for_landing();
+#if __TEST_LAND__
+    	gcs_send_text(MAV_SEVERITY_INFO,"WHY>> PosHold>> NO land_complete_maybe");//学会如何打印信息到地面站
+#else
+    	wp_nav.loiter_soften_for_landing();//WHY>> 修改看看如果关闭了这个会导致什么？？？
+#endif
     }
 
     // if landed initialise loiter targets, set throttle to zero and exit
@@ -192,8 +196,10 @@ void Copter::poshold_run()
         }
         wp_nav.init_loiter_target();
         // move throttle to between minimum and non-takeoff-throttle to keep us on the ground
+        //降落后就会把油门切换到最小值和非起飞油门之间保证呆在地上
         attitude_control.set_throttle_out(get_throttle_pre_takeoff(channel_throttle->control_in),false,g.throttle_filt);
         pos_control.relax_alt_hold_controllers(get_throttle_pre_takeoff(channel_throttle->control_in)-throttle_average);
+        //还会relax高度控制器，保证高度不会过激
         return;
     }else{
         // convert pilot input to lean angles
@@ -201,10 +207,11 @@ void Copter::poshold_run()
 
         // convert inertial nav earth-frame velocities to body-frame
         // To-Do: move this to AP_Math (or perhaps we already have a function to do this)
-        vel_fw = vel.x*ahrs.cos_yaw() + vel.y*ahrs.sin_yaw();
-        vel_right = -vel.x*ahrs.sin_yaw() + vel.y*ahrs.cos_yaw();
+        vel_fw = vel.x*ahrs.cos_yaw() + vel.y*ahrs.sin_yaw();//forward
+        vel_right = -vel.x*ahrs.sin_yaw() + vel.y*ahrs.cos_yaw();//
         
         // If not in LOITER, retrieve latest wind compensation lean angles related to current yaw
+        //TODO WHY 理解风速补偿的原理
         if (poshold.roll_mode != POSHOLD_LOITER || poshold.pitch_mode != POSHOLD_LOITER)
         poshold_get_wind_comp_lean_angles(poshold.wind_comp_roll, poshold.wind_comp_pitch);
 
@@ -222,7 +229,7 @@ void Copter::poshold_run()
 
                 // switch to BRAKE mode for next iteration if no pilot input
                 if (is_zero(target_roll) && (fabsf(poshold.pilot_roll) < 2 * g.poshold_brake_rate)) {
-                    // initialise BRAKE mode
+                    // initialise BRAKE mode  //TODO WHY BRAKE模式到底是什么？
                     poshold.roll_mode = POSHOLD_BRAKE;        // Set brake roll mode
                     poshold.brake_roll = 0;                  // initialise braking angle to zero
                     poshold.brake_angle_max_roll = 0;        // reset brake_angle_max so we can detect when vehicle begins to flatten out during braking
@@ -618,7 +625,7 @@ void Copter::poshold_update_wind_comp_estimate()
         // if wind compensation has not been initialised set it immediately to the pos controller's desired accel in north direction
         poshold.wind_comp_ef.y = accel_target.y;
     } else {
-        // low pass filter the position controller's lean angle output
+        // low pass filter the position controller's lean angle output//低通滤波 位置控制器的倾角输出
         poshold.wind_comp_ef.y = (1.0f-TC_WIND_COMP)*poshold.wind_comp_ef.y + TC_WIND_COMP*accel_target.y;
     }
 }
@@ -639,7 +646,7 @@ void Copter::poshold_get_wind_comp_lean_angles(int16_t &roll_angle, int16_t &pit
     pitch_angle = atanf(-(poshold.wind_comp_ef.x*ahrs.cos_yaw() + poshold.wind_comp_ef.y*ahrs.sin_yaw())/981)*(18000/M_PI);
 }
 
-// poshold_roll_controller_to_pilot_override - initialises transition from a controller submode (brake or loiter) to a pilot override on roll axis
+// poshold_roll_controller_to_pilot_override - initialises transition from a controller submode (brake or loiter) to a pilot override on roll axis  从子模式转换到手控覆盖
 void Copter::poshold_roll_controller_to_pilot_override()
 {
     poshold.roll_mode = POSHOLD_CONTROLLER_TO_PILOT_OVERRIDE;

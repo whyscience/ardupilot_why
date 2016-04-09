@@ -4,6 +4,8 @@
 #define THISFIRMWARE "APM:Copter V3.4-dev"
 #define FIRMWARE_VERSION 3,4,0,FIRMWARE_VERSION_TYPE_DEV
 
+#define __TEST_LAND__ (0)//用于测试着陆过程
+
 /*
    This program is free software: you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by

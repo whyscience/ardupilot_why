@@ -233,14 +233,14 @@ void AC_PosControl::add_takeoff_climb_rate(float climb_rate_cms, float dt)
 void AC_PosControl::relax_alt_hold_controllers(float throttle_setting)
 {
     _pos_target.z = _inav.get_altitude();
-    _vel_desired.z = 0.0f;
-    _flags.use_desvel_ff_z = false;
-    _vel_target.z= _inav.get_velocity_z();
+    _vel_desired.z = 0.0f;//z期望速度设置为零
+    _flags.use_desvel_ff_z = false;//关闭前馈
+    _vel_target.z= _inav.get_velocity_z();//保持当前速度//_vel_desired？？？
     _vel_last.z = _inav.get_velocity_z();
-    _accel_feedforward.z = 0.0f;
+    _accel_feedforward.z = 0.0f;//前馈z加速度为0
     _accel_last_z_cms = 0.0f;
-    _accel_target.z = -(_ahrs.get_accel_ef_blended().z + GRAVITY_MSS) * 100.0f;
-    _flags.reset_accel_to_throttle = true;
+    _accel_target.z = -(_ahrs.get_accel_ef_blended().z + GRAVITY_MSS) * 100.0f;//加速度目标置为当前值
+    _flags.reset_accel_to_throttle = true;//1 if we should reset the accel_to_throttle step of the z-axis controller//这个不是很明白
     _pid_accel_z.set_integrator(throttle_setting*1000.0f);
 }
 
@@ -300,7 +300,7 @@ void AC_PosControl::init_takeoff()
 
     _pos_target.z = curr_pos.z;
 
-    // freeze feedforward to avoid jump
+    // freeze feedforward to avoid jump  //为了避免跳起来，禁用前馈
     freeze_ff_z();
 
     // shift difference between last motor out and hover throttle into accelerometer I
@@ -342,7 +342,7 @@ void AC_PosControl::calc_leash_length_z()
     }
 }
 
-// pos_to_rate_z - position to rate controller for Z axis
+// pos_to_rate_z - position to rate controller for Z axis  位置到速率控制器
 // calculates desired rate in earth-frame z axis and passes to rate controller
 // vel_up_max, vel_down_max should have already been set before calling this method
 void AC_PosControl::pos_to_rate_z()
@@ -393,7 +393,7 @@ void AC_PosControl::pos_to_rate_z()
     rate_to_accel_z();
 }
 
-// rate_to_accel_z - calculates desired accel required to achieve the velocity target
+// rate_to_accel_z - calculates desired accel required to achieve the velocity target  //计算为达到速度目标的期望加速度
 // calculates desired acceleration and calls accel throttle controller
 void AC_PosControl::rate_to_accel_z()
 {
@@ -756,7 +756,7 @@ void AC_PosControl::calc_leash_length_xy()
     }
 }
 
-/// desired_vel_to_pos - move position target using desired velocities
+/// desired_vel_to_pos - move position target using desired velocities  使用期望速度 移动位置目标
 void AC_PosControl::desired_vel_to_pos(float nav_dt)
 {
     // range check nav_dt
@@ -850,7 +850,7 @@ void AC_PosControl::pos_to_rate_xy(xy_mode mode, float dt, float ekfNavVelGainSc
     }
 }
 
-/// rate_to_accel_xy - horizontal desired rate to desired acceleration
+/// rate_to_accel_xy - horizontal desired rate to desired acceleration  从水平期望速率到期望加速度
 ///    converts desired velocities in lat/lon directions to accelerations in lat/lon frame
 void AC_PosControl::rate_to_accel_xy(float dt, float ekfNavVelGainScaler)
 {
@@ -904,7 +904,7 @@ void AC_PosControl::rate_to_accel_xy(float dt, float ekfNavVelGainScaler)
     _accel_target.y = _accel_feedforward.y + (vel_xy_p.y + vel_xy_i.y) * ekfNavVelGainScaler;
 }
 
-/// accel_to_lean_angles - horizontal desired acceleration to lean angles
+/// accel_to_lean_angles - horizontal desired acceleration to lean angles  从加速度算出来期望倾角
 ///    converts desired accelerations provided in lat/lon frame to roll/pitch angles
 void AC_PosControl::accel_to_lean_angles(float dt, float ekfNavVelGainScaler, bool use_althold_lean_angle)
 {
@@ -963,7 +963,7 @@ void AC_PosControl::accel_to_lean_angles(float dt, float ekfNavVelGainScaler, bo
     _roll_target = constrain_float(atanf(accel_right*cos_pitch_target/(GRAVITY_MSS * 100))*(18000/M_PI), -lean_angle_max, lean_angle_max);
 }
 
-// get_lean_angles_to_accel - convert roll, pitch lean angles to lat/lon frame accelerations in cm/s/s
+// get_lean_angles_to_accel - convert roll, pitch lean angles to lat/lon frame accelerations in cm/s/s 把倾角转换到经纬度坐标系的加速度
 void AC_PosControl::lean_angles_to_accel(float& accel_x_cmss, float& accel_y_cmss) const
 {
     // rotate our roll, pitch angles into lat/lon frame

@@ -69,7 +69,11 @@ void Copter::loiter_run()
 
     // relax loiter target if we might be landed
     if (ap.land_complete_maybe) {
+#if __TEST_LAND__
+    	gcs_send_text(MAV_SEVERITY_INFO,"WHY>> Loiter>>NO land_complete_maybe");
+#else
         wp_nav.loiter_soften_for_landing();
+#endif
     }
 
     // Loiter State Machine Determination
