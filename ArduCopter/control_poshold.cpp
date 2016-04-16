@@ -178,16 +178,22 @@ void Copter::poshold_run()
     }
 
     // relax loiter target if we might be landed
+    //land_complete_maybe 仅仅是处理一下,后面还会处理手动输入,其他还是会响应
     if (ap.land_complete_maybe) {
 #if __TEST_LAND__
     	gcs_send_text(MAV_SEVERITY_INFO,"WHY>> PosHold>> NO land_complete_maybe");//学会如何打印信息到地面站
 #else
     	wp_nav.loiter_soften_for_landing();//WHY>> 修改看看如果关闭了这个会导致什么？？？
+//    	gcs_send_text(MAV_SEVERITY_INFO,"PosHold>> ap.land_complete_maybe");//学会如何打印信息到地面站
+//    	printf("PosHold>> ap.land_complete_maybe\n");//WHY
 #endif
     }
 
     // if landed initialise loiter targets, set throttle to zero and exit
+    //land_complete就不一样了,处理完之后直接就抛弃了对手动的处理
     if (ap.land_complete) {
+//    	gcs_send_text(MAV_SEVERITY_INFO,"PosHold>> ap.land_complete");//学会如何打印信息到地面站
+//    	printf("PosHold>> ap.land_complete\n");//WHY
         // if throttle zero reset attitude and exit immediately
         if (ap.throttle_zero) {
             motors.set_desired_spool_state(AP_Motors::DESIRED_SPIN_WHEN_ARMED);
@@ -204,7 +210,7 @@ void Copter::poshold_run()
     }else{
         // convert pilot input to lean angles
         get_pilot_desired_lean_angles(channel_roll->control_in, channel_pitch->control_in, target_roll, target_pitch, aparm.angle_max);
-
+//        printf("PosHold>> manual\n");//WHY
         // convert inertial nav earth-frame velocities to body-frame
         // To-Do: move this to AP_Math (or perhaps we already have a function to do this)
         vel_fw = vel.x*ahrs.cos_yaw() + vel.y*ahrs.sin_yaw();//forward

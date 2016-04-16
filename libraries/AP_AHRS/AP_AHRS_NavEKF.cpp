@@ -287,7 +287,7 @@ const Vector3f &AP_AHRS_NavEKF::get_accel_ef(uint8_t i) const
     return _accel_ef_ekf[i];
 }
 
-// blended accelerometer values in the earth frame in m/s/s
+// blended accelerometer values in the earth frame in m/s/s  地球坐标系下混合加速度的值
 const Vector3f &AP_AHRS_NavEKF::get_accel_ef_blended(void) const
 {
     if (active_EKF_type() == EKF_TYPE_NONE) {
